@@ -7,6 +7,7 @@
  */
 
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,14 +18,17 @@ main(int argc, char *argv[])
 {
   static const char optstr[] =
     "+"
+    "f:" /* filename */
     "m:"; /* memory */
 
   size_t siz = 0;
+  char *filename = NULL;
   long res;
   size_t pgsize;
   int opt;
   unsigned char *mem;
   size_t i;
+  fd_set readfds;
 
   res = sysconf(_SC_PAGESIZE);
 
@@ -41,6 +45,9 @@ main(int argc, char *argv[])
     switch (opt) {
       case '?':
         exit(EXIT_FAILURE);
+      case 'f':
+        filename = optarg;
+        break;
       case 'm': {
         char *end = NULL;
 
@@ -106,6 +113,38 @@ main(int argc, char *argv[])
 
   for (i = 0; i < siz; i += pgsize) {
     mem[i] = i/pgsize;
+  }
+
+  /* open file for waiting */
+
+  if (filename) {
+    int fd = open(filename, O_RDONLY);
+
+    if (fd < 0) {
+      fprintf(stderr, "failed to open file: %s\n", strerror(errno));
+      exit(EXIT_FAILURE);
+    }
+
+    res = dup2(fd, STDIN_FILENO);
+
+    if (res < 0) {
+      fprintf(stderr, "failed to duplicate file descriptor: %s\n",
+              strerror(errno));
+      exit(EXIT_FAILURE);
+    }
+  }
+
+  /* wait */
+
+  FD_ZERO(&readfds);
+  FD_SET(STDIN_FILENO, &readfds);
+
+  res = select(FD_SETSIZE, &readfds, NULL, NULL, NULL);
+
+  if (res < 0) {
+    fprintf(stderr, "waiting on file descriptor failed: %s\n",
+            strerror(errno));
+    exit(EXIT_FAILURE);
   }
 
   exit(EXIT_SUCCESS);
