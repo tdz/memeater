@@ -9,11 +9,10 @@ Memeater is distributed under the Mozilla Public License 2.0.
 
 # Compile and install
 
-To build and install memeater
-
-    - set NDKROOT in .config.mk to the path of your Android NDK,
-    - run 'make', and
-    - push the memeater binary to your Android device.
+Copy this directory into the application directory of your Android
+NDK and run ndk-build, or copy the directory into B2G's external/
+directory and have memeater buil dand installed automatically with
+B2G.
 
 # Usage
 
